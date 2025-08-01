@@ -17,28 +17,22 @@ export const useAuth = () => {
         if (error) {
           console.error('Error getting session:', error)
           setError(error.message)
+          setLoading(false)
           return
         }
 
         if (session?.user) {
-          // Set basic user immediately for fast loading
-          setUser({
-            id: session.user.id,
-            email: undefined,
-            role: 'user',
-            full_name: undefined
-          })
-          
-          // Fetch profile in background (non-blocking)
+          // Don't set user until profile is fetched to avoid race conditions
           if (!isProfileFetching.current) {
             isProfileFetching.current = true
-            fetchUserProfile(session.user.id)
+            await fetchUserProfile(session.user.id)
           }
+        } else {
+          setLoading(false)
         }
       } catch (err) {
         console.error('Unexpected error:', err)
         setError('Failed to get session')
-      } finally {
         setLoading(false)
       }
     }
@@ -49,20 +43,14 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
-          setUser({
-            id: session.user.id,
-            email: undefined,
-            role: 'user',
-            full_name: undefined
-          })
-          
           if (!isProfileFetching.current) {
             isProfileFetching.current = true
-            fetchUserProfile(session.user.id)
+            await fetchUserProfile(session.user.id)
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setError(null)
+          setLoading(false)
         }
       }
     )
@@ -80,22 +68,45 @@ export const useAuth = () => {
 
       if (error) {
         console.error('Error fetching profile:', error)
-        // Don't set error here - user can still use the app with basic info
+        // Set user with basic info and default role if profile fetch fails
+        setUser({
+          id: userId,
+          email: undefined,
+          role: 'user',
+          full_name: undefined
+        })
+        setLoading(false)
         return
       }
 
       if (data) {
-        setUser(prev => prev ? {
-          ...prev,
+        setUser({
+          id: userId,
           email: data.email,
           role: data.role || 'user',
           full_name: data.full_name
-        } : null)
+        })
+      } else {
+        // No profile found, create basic user
+        setUser({
+          id: userId,
+          email: undefined,
+          role: 'user',
+          full_name: undefined
+        })
       }
     } catch (err) {
       console.error('Unexpected error fetching profile:', err)
+      // Set user with basic info on error
+      setUser({
+        id: userId,
+        email: undefined,
+        role: 'user',
+        full_name: undefined
+      })
     } finally {
       isProfileFetching.current = false
+      setLoading(false)
     }
   }
 

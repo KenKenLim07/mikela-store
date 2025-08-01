@@ -20,6 +20,19 @@ export const Navbar = () => {
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false)
   const adminDropdownRef = useRef<HTMLDivElement>(null)
 
+  // Debug logging for navbar
+  useEffect(() => {
+    if (user) {
+      console.log('Navbar user state:', {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+        fullName: user.full_name,
+        isAdmin: user.role === 'admin'
+      })
+    }
+  }, [user])
+
   // Close dropdown on outside click or escape
   useEffect(() => {
     if (!isAdminDropdownOpen) return
