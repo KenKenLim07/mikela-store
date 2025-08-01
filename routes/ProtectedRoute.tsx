@@ -9,6 +9,17 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRouteProps) => {
   const { user, loading } = useAuth()
 
+  // Debug logging for admin access issues
+  if (adminOnly) {
+    console.log('ProtectedRoute Debug:', {
+      loading,
+      user,
+      userRole: user?.role,
+      adminOnly,
+      isAdmin: user?.role === 'admin'
+    })
+  }
+
   // Show loading skeleton while auth is being determined
   if (loading) {
     return (
@@ -23,13 +34,16 @@ export const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRoutePr
 
   // Redirect to login if not authenticated
   if (!user) {
+    console.log('ProtectedRoute: No user, redirecting to login')
     return <Navigate to="/login" replace />
   }
 
   // Check admin role if required
   if (adminOnly && user.role !== 'admin') {
+    console.log('ProtectedRoute: Admin required but user role is:', user.role)
     return <Navigate to="/" replace />
   }
 
+  console.log('ProtectedRoute: Access granted')
   return children
 } 
