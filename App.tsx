@@ -3,17 +3,19 @@ import { Suspense, lazy } from 'react'
 import { Navbar } from './components/ui/Navbar'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 
-// Lazy load all page components for code splitting
+// Direct imports for admin components to debug access issue
+import { AdminDashboard } from './pages/AdminDashboard'
+import { ManageProducts } from './pages/ManageProducts'
+import { AdminAddProduct } from './pages/AdminAddProduct'
+import { AdminOrders } from './pages/AdminOrders'
+
+// Lazy load non-admin page components for code splitting
 const Home = lazy(() => import('./pages/Home').then(module => ({ default: module.Home })))
 const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })))
 const Register = lazy(() => import('./pages/Register').then(module => ({ default: module.Register })))
 const Checkout = lazy(() => import('./pages/Checkout').then(module => ({ default: module.Checkout })))
 const PaymentQR = lazy(() => import('./pages/PaymentQR').then(module => ({ default: module.PaymentQR })))
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })))
-const ManageProducts = lazy(() => import('./pages/ManageProducts').then(module => ({ default: module.ManageProducts })))
 const NotFound = lazy(() => import('./pages/NotFound').then(module => ({ default: module.NotFound })))
-const AdminAddProduct = lazy(() => import('./pages/AdminAddProduct').then(module => ({ default: module.AdminAddProduct })))
-const AdminOrders = lazy(() => import('./pages/AdminOrders').then(module => ({ default: module.AdminOrders })))
 const Orders = lazy(() => import('./pages/Orders').then(module => ({ default: module.Orders })))
 
 // Loading component for Suspense fallback
