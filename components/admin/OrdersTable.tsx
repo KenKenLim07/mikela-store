@@ -1,0 +1,1 @@
+// OrdersTable.tsx - Admin component for managing orders 

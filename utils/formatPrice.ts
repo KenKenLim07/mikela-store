@@ -1,0 +1,1 @@
+// formatPrice.ts - Price formatting utility function 
