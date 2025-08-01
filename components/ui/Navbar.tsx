@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { Bars3Icon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 
-const NavbarSkeleton = () => (
+const NavbarSkeleton = memo(() => (
   <nav className="bg-white shadow-sm border-b border-gray-200 animate-pulse">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
       <div className="w-32 h-6 bg-gray-200 rounded mr-4" />
@@ -11,26 +11,50 @@ const NavbarSkeleton = () => (
       <div className="w-16 h-6 bg-gray-200 rounded" />
     </div>
   </nav>
-)
+))
 
-export const Navbar = () => {
+NavbarSkeleton.displayName = 'NavbarSkeleton'
+
+export const Navbar = memo(() => {
   // All hooks must be called before any early return!
   const { user, loading, signOut } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false)
   const adminDropdownRef = useRef<HTMLDivElement>(null)
 
+  const handleSignOut = useCallback(async () => {
+    await signOut()
+    setIsMobileMenuOpen(false)
+  }, [signOut])
+
+  const toggleMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(prev => !prev)
+  }, [])
+
+  const toggleAdminDropdown = useCallback(() => {
+    setIsAdminDropdownOpen(prev => !prev)
+  }, [])
+
+  const closeMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(false)
+  }, [])
+
+  const isAdmin = useMemo(() => user?.role === 'admin', [user?.role])
+
   // Close dropdown on outside click or escape
   useEffect(() => {
     if (!isAdminDropdownOpen) return
-    function handleClick(e: MouseEvent) {
+    
+    const handleClick = (e: MouseEvent) => {
       if (adminDropdownRef.current && !adminDropdownRef.current.contains(e.target as Node)) {
         setIsAdminDropdownOpen(false)
       }
     }
-    function handleEsc(e: KeyboardEvent) {
+    
+    const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsAdminDropdownOpen(false)
     }
+    
     document.addEventListener('mousedown', handleClick)
     document.addEventListener('keydown', handleEsc)
     return () => {
@@ -42,127 +66,110 @@ export const Navbar = () => {
   // Only render skeleton while loading
   if (loading) return <NavbarSkeleton />
 
-  const handleSignOut = async () => {
-    await signOut()
-    setIsMobileMenuOpen(false)
-  }
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen)
-  }
-
-  const toggleAdminDropdown = () => {
-    setIsAdminDropdownOpen(!isAdminDropdownOpen)
-  }
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false)
-  }
-
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          {/* Logo and Desktop Navigation */}
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <div className="flex items-center">
-            {/* Logo */}
             <Link 
               to="/" 
-              className="flex items-center space-x-2 text-xl font-bold text-pink-600 hover:text-pink-700 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 rounded"
+              className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+              onClick={closeMobileMenu}
             >
-              <span>🛍️</span>
-              <span>Mikela Store</span>
+              <span className="text-2xl">🛍️</span>
+              <span className="text-xl font-bold text-pink-600 hidden sm:block">Mikela Store</span>
             </Link>
+          </div>
 
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center space-x-8 ml-10">
-              <Link
-                to="/"
-                className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
-              >
-                Home
-              </Link>
-              {user && (
-                <Link
-                  to="/orders"
-                  className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-8">
+            <Link 
+              to="/" 
+              className="text-gray-700 hover:text-pink-600 transition-colors font-medium"
+            >
+              Home
+            </Link>
+            
+            {user ? (
+              <>
+                <Link 
+                  to="/orders" 
+                  className="text-gray-700 hover:text-pink-600 transition-colors font-medium"
                 >
                   My Orders
                 </Link>
-              )}
-              {/* Admin Dropdown */}
-              {user?.role === 'admin' && (
-                <div className="relative">
-                  <button
-                    onClick={toggleAdminDropdown}
-                    className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 flex items-center space-x-1"
-                    aria-expanded={isAdminDropdownOpen}
-                    aria-haspopup="true"
-                  >
-                    <span>Admin</span>
-                    <ChevronDownIcon className="h-4 w-4" />
-                  </button>
-                  {/* Overlay dropdown absolutely, animate in/out */}
-                  <div
-                    ref={adminDropdownRef}
-                    className={`fixed top-16 right-8 z-50 w-56 transition-all duration-200 ease-out ${isAdminDropdownOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'} bg-white rounded-md shadow-2xl border border-gray-200 py-2`}
-                    style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
-                    tabIndex={-1}
-                    aria-label="Admin menu"
-                  >
-                    <Link
-                      to="/admin"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition-colors rounded"
-                      onClick={() => setIsAdminDropdownOpen(false)}
+                
+                {isAdmin && (
+                  <div className="relative" ref={adminDropdownRef}>
+                    <button
+                      onClick={toggleAdminDropdown}
+                      className="flex items-center text-gray-700 hover:text-pink-600 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 rounded-md px-2 py-1"
+                      aria-expanded={isAdminDropdownOpen}
+                      aria-haspopup="true"
                     >
-                      Dashboard
-                    </Link>
-                    <Link
-                      to="/admin/products"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition-colors rounded"
-                      onClick={() => setIsAdminDropdownOpen(false)}
-                    >
-                      Manage Products
-                    </Link>
+                      Admin
+                      <ChevronDownIcon className={`ml-1 h-4 w-4 transition-transform ${isAdminDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {isAdminDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
+                        <Link
+                          to="/admin"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          onClick={() => setIsAdminDropdownOpen(false)}
+                        >
+                          Dashboard
+                        </Link>
+                        <Link
+                          to="/admin/products"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          onClick={() => setIsAdminDropdownOpen(false)}
+                        >
+                          Manage Products
+                        </Link>
+                        <Link
+                          to="/admin/orders"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          onClick={() => setIsAdminDropdownOpen(false)}
+                        >
+                          Manage Orders
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                  {/* Optional: backdrop for focus */}
-                  {isAdminDropdownOpen && (
-                    <div className="fixed inset-0 z-40" aria-hidden="true" onClick={() => setIsAdminDropdownOpen(false)} />
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* User Menu / Login */}
-          <div className="hidden md:flex items-center space-x-4">
-            {user ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">
-                  Hello, {user.full_name || 'User'}!
-                </span>
+                )}
+                
                 <button
                   onClick={handleSignOut}
-                  className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                  className="text-gray-700 hover:text-pink-600 transition-colors font-medium"
                 >
                   Sign Out
                 </button>
-              </div>
+              </>
             ) : (
-              <Link
-                to="/login"
-                className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
-              >
-                Login
-              </Link>
+              <>
+                <Link 
+                  to="/login" 
+                  className="text-gray-700 hover:text-pink-600 transition-colors font-medium"
+                >
+                  Login
+                </Link>
+                <Link 
+                  to="/register" 
+                  className="bg-pink-600 text-white px-4 py-2 rounded-md hover:bg-pink-700 transition-colors font-medium"
+                >
+                  Register
+                </Link>
+              </>
             )}
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
+          <div className="md:hidden">
             <button
               onClick={toggleMobileMenu}
-              className="text-gray-700 hover:text-pink-600 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+              className="text-gray-700 hover:text-pink-600 transition-colors p-2 rounded-md"
               aria-expanded={isMobileMenuOpen}
               aria-label="Toggle mobile menu"
             >
@@ -174,74 +181,87 @@ export const Navbar = () => {
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-xl animate-slide-down">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link
-              to="/"
-              className="text-gray-700 hover:text-pink-600 block px-3 py-2 rounded-md text-base font-medium transition-colors"
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 py-4 space-y-2">
+            <Link 
+              to="/" 
+              className="block text-gray-700 hover:text-pink-600 transition-colors font-medium py-2"
               onClick={closeMobileMenu}
             >
               Home
             </Link>
-            {user && (
-              <Link
-                to="/orders"
-                className="text-gray-700 hover:text-pink-600 block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                onClick={closeMobileMenu}
-              >
-                My Orders
-              </Link>
-            )}
-            {/* Mobile Admin Links */}
-            {user?.role === 'admin' && (
+            
+            {user ? (
               <>
-                <Link
-                  to="/admin"
-                  className="text-gray-700 hover:text-pink-600 block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                <Link 
+                  to="/orders" 
+                  className="block text-gray-700 hover:text-pink-600 transition-colors font-medium py-2"
                   onClick={closeMobileMenu}
                 >
-                  Dashboard
+                  My Orders
                 </Link>
-                <Link
-                  to="/admin/products"
-                  className="text-gray-700 hover:text-pink-600 block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                  onClick={closeMobileMenu}
+                
+                {isAdmin && (
+                  <>
+                    <div className="border-t border-gray-200 pt-2 mt-2">
+                      <p className="text-sm font-semibold text-gray-500 mb-2">Admin</p>
+                      <Link
+                        to="/admin"
+                        className="block text-gray-700 hover:text-pink-600 transition-colors py-2 pl-4"
+                        onClick={closeMobileMenu}
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
+                        to="/admin/products"
+                        className="block text-gray-700 hover:text-pink-600 transition-colors py-2 pl-4"
+                        onClick={closeMobileMenu}
+                      >
+                        Manage Products
+                      </Link>
+                      <Link
+                        to="/admin/orders"
+                        className="block text-gray-700 hover:text-pink-600 transition-colors py-2 pl-4"
+                        onClick={closeMobileMenu}
+                      >
+                        Manage Orders
+                      </Link>
+                    </div>
+                  </>
+                )}
+                
+                <button
+                  onClick={handleSignOut}
+                  className="block text-left w-full text-gray-700 hover:text-pink-600 transition-colors font-medium py-2"
                 >
-                  Manage Products
-                </Link>
+                  Sign Out
+                </button>
               </>
-            )}
-            {/* Mobile User Menu */}
-            <div className="border-t border-gray-200 pt-4 mt-4">
-              {user ? (
-                <div className="space-y-2">
-                  <div className="px-3 py-2 text-sm text-gray-600">
-                    Hello, {user.full_name || 'User'}!
-                  </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="text-gray-700 hover:text-pink-600 block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <Link
-                  to="/login"
-                  className="text-gray-700 hover:text-pink-600 block px-3 py-2 rounded-md text-base font-medium transition-colors"
+            ) : (
+              <>
+                <Link 
+                  to="/login" 
+                  className="block text-gray-700 hover:text-pink-600 transition-colors font-medium py-2"
                   onClick={closeMobileMenu}
                 >
                   Login
                 </Link>
-              )}
-            </div>
+                <Link 
+                  to="/register" 
+                  className="block bg-pink-600 text-white px-4 py-2 rounded-md hover:bg-pink-700 transition-colors font-medium text-center"
+                  onClick={closeMobileMenu}
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </nav>
   )
-} 
+})
+
+Navbar.displayName = 'Navbar' 

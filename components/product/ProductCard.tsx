@@ -1,13 +1,18 @@
 import type { Product } from '../../types/db'
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, memo, useMemo, useCallback } from 'react'
 
 interface ProductCardProps {
   product: Product
 }
 
-const ImageWithSkeleton = ({ src, alt }: { src: string; alt: string }) => {
+const ImageWithSkeleton = memo(({ src, alt }: { src: string; alt: string }) => {
   const [loaded, setLoaded] = useState(false)
+  
+  const handleLoad = useCallback(() => {
+    setLoaded(true)
+  }, [])
+
   return (
     <div className="aspect-square w-full bg-gray-100 flex items-center justify-center overflow-hidden relative">
       {!loaded && (
@@ -20,31 +25,59 @@ const ImageWithSkeleton = ({ src, alt }: { src: string; alt: string }) => {
         alt={alt}
         className={`object-cover w-full h-full transition-transform duration-300 ${loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
         loading="lazy"
-        onLoad={() => setLoaded(true)}
+        onLoad={handleLoad}
         draggable={false}
       />
     </div>
   )
-}
+})
 
-const BuyButton = ({ isOutOfStock, productId, productName }: { isOutOfStock: boolean; productId: string; productName: string }) => (
-  <Link
-    to={isOutOfStock ? '#' : `/payment?product=${productId}`}
-    className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-pink-400
-      ${isOutOfStock
-        ? 'bg-gray-300 text-gray-400 cursor-not-allowed pointer-events-none'
-        : 'bg-pink-600 text-white hover:bg-pink-700 focus:bg-pink-700 active:bg-pink-800'}
-    `}
-    aria-label={isOutOfStock ? 'Out of Stock' : `Buy ${productName}`}
-    aria-disabled={isOutOfStock}
-    tabIndex={isOutOfStock ? -1 : 0}
-  >
-    {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
-  </Link>
-)
+ImageWithSkeleton.displayName = 'ImageWithSkeleton'
 
-export const ProductCard = ({ product }: ProductCardProps) => {
-  const isOutOfStock = product.stocks === 0
+const BuyButton = memo(({ isOutOfStock, productId, productName }: { isOutOfStock: boolean; productId: string; productName: string }) => {
+  const linkTo = useMemo(() => 
+    isOutOfStock ? '#' : `/payment?product=${productId}`, 
+    [isOutOfStock, productId]
+  )
+  
+  const buttonStyle = useMemo(() => `inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-pink-400
+    ${isOutOfStock
+      ? 'bg-gray-300 text-gray-400 cursor-not-allowed pointer-events-none'
+      : 'bg-pink-600 text-white hover:bg-pink-700 focus:bg-pink-700 active:bg-pink-800'}
+  `, [isOutOfStock])
+
+  return (
+    <Link
+      to={linkTo}
+      className={buttonStyle}
+      aria-label={isOutOfStock ? 'Out of Stock' : `Buy ${productName}`}
+      aria-disabled={isOutOfStock}
+      tabIndex={isOutOfStock ? -1 : 0}
+    >
+      {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
+    </Link>
+  )
+})
+
+BuyButton.displayName = 'BuyButton'
+
+export const ProductCard = memo(({ product }: ProductCardProps) => {
+  const isOutOfStock = useMemo(() => product.stocks === 0, [product.stocks])
+  
+  const stockText = useMemo(() => 
+    isOutOfStock ? 'Out of Stock' : `Stocks: ${product.stocks}`,
+    [isOutOfStock, product.stocks]
+  )
+  
+  const stockClassName = useMemo(() => 
+    `text-xs font-medium transition-colors duration-200 whitespace-nowrap ${isOutOfStock ? 'text-red-500' : 'text-gray-500 group-hover:text-pink-600'}`,
+    [isOutOfStock]
+  )
+  
+  const formattedPrice = useMemo(() => 
+    `₱${product.price.toFixed(2)}`,
+    [product.price]
+  )
 
   return (
     <article
@@ -67,11 +100,11 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             {product.name}
           </h3>
           <span
-            className={`text-xs font-medium transition-colors duration-200 whitespace-nowrap ${isOutOfStock ? 'text-red-500' : 'text-gray-500 group-hover:text-pink-600'}`}
-            title={isOutOfStock ? 'Out of Stock' : `Stocks: ${product.stocks}`}
+            className={stockClassName}
+            title={stockText}
             aria-live="polite"
           >
-            {isOutOfStock ? 'Out of Stock' : `Stocks: ${product.stocks}`}
+            {stockText}
           </span>
         </div>
         {product.description && (
@@ -79,11 +112,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         )}
         <div className="mt-auto flex items-center justify-between pt-1">
           <span className="text-pink-600 font-bold text-sm transition-colors duration-200 group-hover:text-pink-700">
-            ₱{product.price.toFixed(2)}
+            {formattedPrice}
           </span>
           <BuyButton isOutOfStock={isOutOfStock} productId={product.id} productName={product.name} />
         </div>
       </section>
     </article>
   )
-} 
+})
+
+ProductCard.displayName = 'ProductCard' 

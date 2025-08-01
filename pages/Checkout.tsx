@@ -82,7 +82,7 @@ export const Checkout = () => {
       const fileExt = proof.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`
       const filePath = `orders/${fileName}`
-      const { data, error: uploadError } = await supabase.storage
+      const { data: _data, error: uploadError } = await supabase.storage
         .from('payment-proofs')
         .upload(filePath, proof, {
           cacheControl: '3600',

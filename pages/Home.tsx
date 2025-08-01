@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { ProductList } from '../components/product/ProductList'
 import { HeartIcon, ShoppingBagIcon } from '@heroicons/react/24/outline'
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid'
-import { Layout, SectionLayout } from '../components/ui/Layout'
+import { Layout } from '../components/ui/Layout'
 
 // Hero Section Component
 const HeroSection = () => {

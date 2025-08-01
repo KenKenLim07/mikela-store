@@ -2,7 +2,7 @@ import { useAuth } from '../hooks/useAuth'
 import { Navigate } from 'react-router-dom'
 
 interface ProtectedRouteProps {
-  children: JSX.Element
+  children: React.ReactElement
   adminOnly?: boolean
 }
 
