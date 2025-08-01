@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { useAuth } from './useAuth'
 import type { Product, SupabaseResponse } from '../types/db'
 
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { loading: authLoading } = useAuth()
   const hasFetched = useRef(false)
 
   const fetchProducts = async () => {

@@ -6,7 +6,6 @@ import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
 import React from 'react'
 import { Modal } from '../components/ui/Modal'
-import { useRef } from 'react'
 
 // Toast system (minimal, for now)
 const Toast = ({ message, onClose }: { message: string, onClose: () => void }) => (
@@ -29,7 +28,7 @@ export const AdminOrders = () => {
   const [denialReason, setDenialReason] = useState('')
   const [pendingDenyOrder, setPendingDenyOrder] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const denialReasonRef = useRef('')
+
 
   // Defense-in-depth: Additional security check
   if (authLoading) {

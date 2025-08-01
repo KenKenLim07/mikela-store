@@ -59,7 +59,7 @@ export const AdminAddProduct = () => {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`
       const filePath = `products/${fileName}`
       
-      const { data, error: uploadError } = await supabase.storage
+      const { data: _data, error: uploadError } = await supabase.storage
         .from('product-images')
         .upload(filePath, form.image, {
           cacheControl: '3600',

@@ -7,6 +7,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const isProfileFetching = useRef(false)
+  const hasInitialProfile = useRef(false)
 
   useEffect(() => {
     // Get initial session
@@ -17,28 +18,31 @@ export const useAuth = () => {
         if (error) {
           console.error('Error getting session:', error)
           setError(error.message)
+          setLoading(false)
           return
         }
 
         if (session?.user) {
-          // Set basic user immediately for fast loading
+          // Set basic user immediately but keep loading=true until profile is fetched
           setUser({
             id: session.user.id,
             email: undefined,
-            role: 'user',
+            role: 'user', // temporary default
             full_name: undefined
           })
           
-          // Fetch profile in background (non-blocking)
+          // Fetch profile and wait for it to complete before setting loading=false
           if (!isProfileFetching.current) {
             isProfileFetching.current = true
-            fetchUserProfile(session.user.id)
+            await fetchUserProfile(session.user.id)
           }
+        } else {
+          // No session, not loading anymore
+          setLoading(false)
         }
       } catch (err) {
         console.error('Unexpected error:', err)
         setError('Failed to get session')
-      } finally {
         setLoading(false)
       }
     }
@@ -52,17 +56,19 @@ export const useAuth = () => {
           setUser({
             id: session.user.id,
             email: undefined,
-            role: 'user',
+            role: 'user', // temporary default
             full_name: undefined
           })
           
           if (!isProfileFetching.current) {
             isProfileFetching.current = true
-            fetchUserProfile(session.user.id)
+            await fetchUserProfile(session.user.id)
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setError(null)
+          hasInitialProfile.current = false
+          setLoading(false)
         }
       }
     )
@@ -80,11 +86,12 @@ export const useAuth = () => {
 
       if (error) {
         console.error('Error fetching profile:', error)
-        // Don't set error here - user can still use the app with basic info
-        return
-      }
-
-      if (data) {
+        // Set to default user role if profile fetch fails
+        setUser(prev => prev ? {
+          ...prev,
+          role: 'user'
+        } : null)
+      } else if (data) {
         setUser(prev => prev ? {
           ...prev,
           email: data.email,
@@ -94,8 +101,16 @@ export const useAuth = () => {
       }
     } catch (err) {
       console.error('Unexpected error fetching profile:', err)
+      // Set to default user role if profile fetch fails
+      setUser(prev => prev ? {
+        ...prev,
+        role: 'user'
+      } : null)
     } finally {
       isProfileFetching.current = false
+      hasInitialProfile.current = true
+      // Only set loading to false after profile fetch is complete
+      setLoading(false)
     }
   }
 
